@@ -3,11 +3,19 @@ uuid = "35160c88-fc81-420f-8ab1-2528f52aa6be"
 authors = ["Matt Brzezinski <matt.brzezinski@invenia.ca> and contributors"]
 version = "0.1.0"
 
+[deps]
+AWS = "fbe9abb3-538b-5e4e-ba9e-bc94f4f92ebc"
+Mocking = "78c3b35d-d492-501b-9361-3d52fe80e533"
+
 [compat]
+AWS = "1"
+HTTP = "0.9"
+Mocking = "0.7"
 julia = "1"
 
 [extras]
+HTTP = "cd3eb016-35fb-5094-929b-558a96fad6f3"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test"]
+test = ["HTTP", "Test"]
