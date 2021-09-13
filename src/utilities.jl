@@ -15,7 +15,6 @@ function _build_docker_image(
     else
         # Remove Dockerfile from the path provided, and use that directory for build context
         push!(cmd, dirname(dockerfile_path))
-    end
 
     run(Cmd(cmd))
 

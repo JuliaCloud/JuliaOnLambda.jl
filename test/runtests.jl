@@ -77,6 +77,4 @@ end
             end
         end
     end
-
-    println(read(`docker images`, String))
 end
