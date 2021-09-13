@@ -18,6 +18,8 @@ function _get_create_ecr_repo(repository_name::AbstractString)
         return response["repositories"][1]["repositoryUri"]
     catch e
         if e.code == REPO_NOT_FOUND_EXCEPTION
+            @info "Creating ECR repository, $repository_name"
+
             response = @mock ECR.create_repository(repository_name)
             return response["repository"]["repositoryUri"]
         else
