@@ -1,9 +1,11 @@
-using JuliaOnLambda
+using AWS
 using AWS.AWSExceptions: AWSException
 using HTTP: Response, StatusError
+using JuliaOnLambda
 using Mocking
 using Test
 
+@service ECR
 Mocking.activate()
 
 include("patches.jl")
@@ -75,6 +77,25 @@ end
             finally
                 docker_rmi(image_name)
             end
+        end
+    end
+
+    @testset "_upload_docker_image" begin
+        repo_name = "foobar"
+        image_name = "bizbaz"
+        tag = "latest"
+        try
+            repo_uri = JuliaOnLambda._get_create_ecr_repo(repo_name)
+            JuliaOnLambda._create_docker_image(image_name, tag)
+            JuliaOnLambda._tag_docker_image(image_name, tag, repo_uri)
+            JuliaOnLambda._upload_docker_image(repo_uri)
+
+            resp = ECR.describe_images(repo_name)["imageDetails"]
+
+            @test !isempty(resp)
+        finally
+            ECR.delete_repository(repo_name, Dict("force"=>true))
+            docker_rmi(image_name)
         end
     end
 end
