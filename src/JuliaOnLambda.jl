@@ -47,20 +47,15 @@ function _create_docker_image(
 end
 
 function _tag_docker_image(
-    image::AbstractString,
-    tag::AbstractString,
-    repository_uri::AbstractString,
+    image::AbstractString, tag::AbstractString, repository_uri::AbstractString
 )
     return run(`docker tag $(image):$(tag) $repository_uri`)
 end
 
-
 """
 Upload Docker image
 """
-function _upload_docker_image(
-    repository_name::AbstractString
-)
+function _upload_docker_image(repository_name::AbstractString)
     return run(`docker push $repository_name`)
 end
 

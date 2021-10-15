@@ -94,7 +94,7 @@ end
 
             @test !isempty(resp)
         finally
-            ECR.delete_repository(repo_name, Dict("force"=>true))
+            ECR.delete_repository(repo_name, Dict("force" => true))
             docker_rmi(image_name)
         end
     end
