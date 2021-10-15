@@ -1,5 +1,6 @@
 using AWS
 using AWS.AWSExceptions: AWSException
+using Dates
 using HTTP: Response, StatusError
 using JuliaOnLambda
 using Mocking
@@ -10,15 +11,23 @@ Mocking.activate()
 
 include("patches.jl")
 
+const IS_GITHUB_RUNNER = haskey(ENV, "GITHUB_ACTIONS")
+
+function _now_formatted()
+    return lowercase(Dates.format(now(Dates.UTC), dateformat"yyyymmdd\THHMMSSsss\Z"))
+end
+
 function docker_rmi(name::AbstractString)
     return read(`docker rmi $(name)`)
 end
 
 @testset "JuliaOnLambda.jl" begin
     @testset "_get_create_ecr_repo" begin
+        repo_name = "juliaonlambda-" * _now_formatted()
+
         @testset "repo exists" begin
             apply(describe_repository_exists_patch) do
-                response = JuliaOnLambda._get_create_ecr_repo("foobar")
+                response = JuliaOnLambda._get_create_ecr_repo(repo_name)
 
                 @test response == REPO_URL
             end
@@ -26,7 +35,7 @@ end
 
         @testset "repo dne" begin
             apply([describe_repository_dne_patch, create_repository_patch]) do
-                response = JuliaOnLambda._get_create_ecr_repo("foobar")
+                response = JuliaOnLambda._get_create_ecr_repo(repo_name)
 
                 @test response == REPO_URL
             end
@@ -34,7 +43,7 @@ end
 
         @testset "alternative error" begin
             apply([describe_repository_dne_patch, create_repository_failure_patch]) do
-                @test_throws AWSException JuliaOnLambda._get_create_ecr_repo("foobar")
+                @test_throws AWSException JuliaOnLambda._get_create_ecr_repo(repo_name)
             end
         end
     end
@@ -80,22 +89,27 @@ end
         end
     end
 
-    @testset "_upload_docker_image" begin
-        repo_name = "foobar"
-        image_name = "bizbaz"
-        tag = "latest"
-        try
-            repo_uri = JuliaOnLambda._get_create_ecr_repo(repo_name)
-            JuliaOnLambda._create_docker_image(image_name, tag)
-            JuliaOnLambda._tag_docker_image(image_name, tag, repo_uri)
-            JuliaOnLambda._upload_docker_image(repo_uri)
+    # Don't test upload on GitHub currently as it's quite finnicky to authenticate
+    # to ECR with Docker
+    if !IS_GITHUB_RUNNER
+        @testset "_upload_docker_image" begin
+            repo_name = "juliaonlambda-" * _now_formatted()
+            image_name = "bizbaz"
+            tag = "latest"
 
-            resp = ECR.describe_images(repo_name)["imageDetails"]
+            try
+                repo_uri = JuliaOnLambda._get_create_ecr_repo(repo_name)
+                JuliaOnLambda._create_docker_image(image_name, tag)
+                JuliaOnLambda._tag_docker_image(image_name, tag, repo_uri)
+                JuliaOnLambda._upload_docker_image(repo_uri)
 
-            @test !isempty(resp)
-        finally
-            ECR.delete_repository(repo_name, Dict("force" => true))
-            docker_rmi(image_name)
+                resp = ECR.describe_images(repo_name)["imageDetails"]
+
+                @test !isempty(resp)
+            finally
+                ECR.delete_repository(repo_name, Dict("force" => true))
+                docker_rmi(image_name)
+            end
         end
     end
 end
