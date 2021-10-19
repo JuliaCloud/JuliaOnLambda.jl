@@ -13,7 +13,7 @@ describe_repository_dne_patch = @patch function JuliaOnLambda.ECR.describe_repos
 )
     return throw(
         AWSException(
-            JuliaOnLambda.REPO_NOT_FOUND_EXCEPTION, "foobar", nothing, STATUS_ERROR
+            JuliaOnLambda.REPO_NOT_FOUND_EXCEPTION, "foobar", nothing, STATUS_ERROR, nothing
         ),
     )
 end
@@ -27,5 +27,7 @@ end
 create_repository_failure_patch = @patch function JuliaOnLambda.ECR.create_repository(
     repository_name
 )
-    return throw(AWSException("Alternative Error", "foobar", nothing, STATUS_ERROR))
+    return throw(
+        AWSException("Alternative Error", "foobar", nothing, STATUS_ERROR, nothing)
+    )
 end
