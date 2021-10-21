@@ -1,7 +1,5 @@
-function _image_uri(
-    repository_uri::AbstractString, image::AbstractString, tag::AbstractString
-)
-    return "$(joinpath(repository_uri, image)):$(tag)"
+function _image_uri(image::AbstractString, tag::AbstractString)
+    return "$(image):$(tag)"
 end
 
 function _build_docker_image(

@@ -35,17 +35,28 @@ end
 Build and tag the Docker image.
 """
 function _create_docker_image(
-    repository_name::AbstractString,
     image::AbstractString,
     tag::AbstractString;
     dockerfile_path::AbstractString=DEFAULT_DOCKERFILE,
 )
-    repository_uri = _get_create_ecr_repo(repository_name)
-    image_uri = _image_uri(repository_uri, image, tag)
+    image_uri = _image_uri(image, tag)
 
     _build_docker_image(image_uri; dockerfile_path=dockerfile_path)
 
     return nothing
+end
+
+function _tag_docker_image(
+    image::AbstractString, tag::AbstractString, repository_uri::AbstractString
+)
+    return run(`docker tag $(image):$(tag) $repository_uri`)
+end
+
+"""
+Upload Docker image
+"""
+function _upload_docker_image(repository_name::AbstractString)
+    return run(`docker push $repository_name`)
 end
 
 end
