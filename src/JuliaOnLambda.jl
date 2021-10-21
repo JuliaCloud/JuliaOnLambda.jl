@@ -1,13 +1,25 @@
 module JuliaOnLambda
 
 using AWS
+using JSON
 using Mocking
+using UUIDs
 
+@service IAM
 @service ECR
+@service Lambda
 
 const DEFAULT_PROJECT_PATH = joinpath(@__DIR__, "..")
 const DEFAULT_DOCKERFILE = joinpath(DEFAULT_PROJECT_PATH, "Dockerfile")
 const REPO_NOT_FOUND_EXCEPTION = "RepositoryNotFoundException"
+const DEFAULT_LAMBDA_POLICY = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+
+const DEFAULT_LAMBDA_PARAMS = Dict{String, Any}(
+    "PackageType" => "Image",
+    "Publish" => "true",
+    "MemorySize" => 4096,  # 4GB
+    "Timeout" => 300,  # 5 minutes
+)
 
 include("utilities.jl")
 
@@ -43,7 +55,7 @@ function _create_docker_image(
 
     _build_docker_image(image_uri; dockerfile_path=dockerfile_path)
 
-    return nothing
+    return image_uri
 end
 
 function _tag_docker_image(
@@ -55,8 +67,49 @@ end
 """
 Upload Docker image
 """
-function _upload_docker_image(repository_name::AbstractString)
-    return run(`docker push $repository_name`)
+function _upload_docker_image(repository_name::AbstractString; tag::AbstractString="latest")
+    run(`docker push $repository_name`)
+    return "$repository_name:$(tag)"
+end
+
+"""
+Create the Lambda function
+"""
+function _create_lambda_function(
+    lambda_function_name::AbstractString,
+    docker_arn::AbstractString;
+    role_arn::Union{AbstractString, Nothing}=nothing,
+    lambda_optional_parameters::Dict{String, <:Any}=Dict{String, Any}()
+)
+    role_name = "JuliaOnLambda-" * string(UUIDs.uuid4())
+
+    if role_arn === nothing
+        assume_role_policy_document = Dict(
+            "Version" => "2012-10-17",
+            "Statement" => [
+                Dict(
+                    "Effect" => "Allow",
+                    "Principal" => Dict("Service" => "lambda.amazonaws.com"),
+                    "Action" => "sts:AssumeRole"
+                )
+            ]
+        )
+        assume_role_policy_document = JSON.json(assume_role_policy_document)
+
+        role_arn = IAM.create_role(assume_role_policy_document, role_name)["CreateRoleResult"]["Role"]["Arn"]
+        IAM.attach_role_policy(DEFAULT_LAMBDA_POLICY, role_name)
+    end
+
+    sleep(8)  # We need to wait for AWS until we can use this role
+
+    resp = Lambda.create_function(
+        Dict("ImageUri" => docker_arn),
+        lambda_function_name,
+        role_arn,
+        mergewith(_merge, DEFAULT_LAMBDA_PARAMS, lambda_optional_parameters)
+    )
+
+    return resp["FunctionArn"], role_name
 end
 
 end

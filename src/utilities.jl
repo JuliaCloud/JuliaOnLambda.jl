@@ -1,3 +1,7 @@
+# Merge two Dicts together overriding any values in a with values from b
+_merge(a::AbstractDict, b::AbstractDict) = merge(a, b)
+_merge(a::AbstractString, b::AbstractString) = b
+
 function _image_uri(image::AbstractString, tag::AbstractString)
     return "$(image):$(tag)"
 end

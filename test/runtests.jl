@@ -6,7 +6,9 @@ using JuliaOnLambda
 using Mocking
 using Test
 
+@service IAM
 @service ECR
+@service Lambda
 Mocking.activate()
 
 include("patches.jl")
@@ -87,21 +89,31 @@ end
         end
     end
 
-    @testset "_upload_docker_image" begin
-        repo_name = "juliaonlambda-" * _now_formatted()
+    @testset "_upload_docker_image and _create_lambda_function" begin
+        lambda_name = repo_name = "juliaonlambda-" * _now_formatted()
         image_name = "bizbaz"
         tag = "latest"
+
+        lambda_arn = ""
+        role_name = ""
 
         try
             repo_uri = JuliaOnLambda._get_create_ecr_repo(repo_name)
             JuliaOnLambda._create_docker_image(image_name, tag)
             JuliaOnLambda._tag_docker_image(image_name, tag, repo_uri)
-            JuliaOnLambda._upload_docker_image(repo_uri)
+            image_uri = JuliaOnLambda._upload_docker_image(repo_uri)
 
             resp = ECR.describe_images(repo_name)["imageDetails"]
 
             @test !isempty(resp)
+
+            lambda_arn, role_name = JuliaOnLambda._create_lambda_function(lambda_name, image_uri)
+
+            @test !isempty(Lambda.get_function(lambda_name))
         finally
+            Lambda.delete_function(lambda_arn)
+            IAM.detach_role_policy(JuliaOnLambda.DEFAULT_LAMBDA_POLICY, role_name)
+            IAM.delete_role(role_name)
             ECR.delete_repository(repo_name, Dict("force" => true))
             docker_rmi(image_name)
         end
