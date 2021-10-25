@@ -31,9 +31,30 @@ Resources:
         Statement:
           - Effect: Allow
             Action:
+              - ecr:BatchGetImage
+              - ecr:BatchCheckLayerAvailability
               - ecr:CreateRepository
+              - ecr:CompleteLayerUpload
+              - ecr:DescribeImages
               - ecr:DescribeRepositories
               - ecr:DeleteRepository
+              - ecr:GetDownloadUrlForLayer
+              - ecr:InitiateLayerUpload
+              - ecr:ListImages
               - ecr:PutImage
+              - ecr:UploadLayerPart
             Resource:
               - !Sub arn:aws:ecr:*:${AWS::AccountId}:repository/juliaonlambda-*
+  ECRPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: ECRPolicy
+      Users:
+        - !Ref PublicCIUser
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - ecr:GetAuthorizationToken
+            Resource: '*'

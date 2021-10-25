@@ -11,8 +11,6 @@ Mocking.activate()
 
 include("patches.jl")
 
-const IS_GITHUB_RUNNER = haskey(ENV, "GITHUB_ACTIONS")
-
 function _now_formatted()
     return lowercase(Dates.format(now(Dates.UTC), dateformat"yyyymmdd\THHMMSSsss\Z"))
 end
@@ -89,27 +87,23 @@ end
         end
     end
 
-    # Don't test upload on GitHub currently as it's quite finnicky to authenticate
-    # to ECR with Docker
-    if !IS_GITHUB_RUNNER
-        @testset "_upload_docker_image" begin
-            repo_name = "juliaonlambda-" * _now_formatted()
-            image_name = "bizbaz"
-            tag = "latest"
+    @testset "_upload_docker_image" begin
+        repo_name = "juliaonlambda-" * _now_formatted()
+        image_name = "bizbaz"
+        tag = "latest"
 
-            try
-                repo_uri = JuliaOnLambda._get_create_ecr_repo(repo_name)
-                JuliaOnLambda._create_docker_image(image_name, tag)
-                JuliaOnLambda._tag_docker_image(image_name, tag, repo_uri)
-                JuliaOnLambda._upload_docker_image(repo_uri)
+        try
+            repo_uri = JuliaOnLambda._get_create_ecr_repo(repo_name)
+            JuliaOnLambda._create_docker_image(image_name, tag)
+            JuliaOnLambda._tag_docker_image(image_name, tag, repo_uri)
+            JuliaOnLambda._upload_docker_image(repo_uri)
 
-                resp = ECR.describe_images(repo_name)["imageDetails"]
+            resp = ECR.describe_images(repo_name)["imageDetails"]
 
-                @test !isempty(resp)
-            finally
-                ECR.delete_repository(repo_name, Dict("force" => true))
-                docker_rmi(image_name)
-            end
+            @test !isempty(resp)
+        finally
+            ECR.delete_repository(repo_name, Dict("force" => true))
+            docker_rmi(image_name)
         end
     end
 end
