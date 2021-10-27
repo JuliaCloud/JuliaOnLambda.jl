@@ -43,6 +43,8 @@ Resources:
               - ecr:ListImages
               - ecr:PutImage
               - ecr:UploadLayerPart
+              - ecr:SetRepositoryPolicy
+              - ecr:GetRepositoryPolicy
             Resource:
               - !Sub arn:aws:ecr:*:${AWS::AccountId}:repository/juliaonlambda-*
   ECRPolicy:
@@ -58,3 +60,37 @@ Resources:
             Action:
               - ecr:GetAuthorizationToken
             Resource: '*'
+  IAMPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: IAMPolicy
+      Users:
+        - !Ref PublicCIUser
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - iam:CreateRole
+              - iam:AttachRolePolicy
+              - iam:DetachRolePolicy
+              - iam:DeleteRole
+              - iam:PassRole
+            Resource:
+              - !Sub arn:aws:iam::${AWS::AccountId}:role/JuliaOnLambda-*
+  LambdaPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: LambdaPolicy
+      Users:
+        - !Ref PublicCIUser
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - lambda:CreateFunction
+              - lambda:GetFunction
+              - lambda:DeleteFunction
+            Resource:
+              - !Sub "arn:aws:lambda:*:$(AWS::AccountId):function:juliaonlambda-*"

@@ -14,7 +14,7 @@ const DEFAULT_DOCKERFILE = joinpath(DEFAULT_PROJECT_PATH, "Dockerfile")
 const REPO_NOT_FOUND_EXCEPTION = "RepositoryNotFoundException"
 const DEFAULT_LAMBDA_POLICY = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 
-const DEFAULT_LAMBDA_PARAMS = Dict{String, Any}(
+const DEFAULT_LAMBDA_PARAMS = Dict{String,Any}(
     "PackageType" => "Image",
     "Publish" => "true",
     "MemorySize" => 4096,  # 4GB
@@ -78,8 +78,8 @@ Create the Lambda function
 function _create_lambda_function(
     lambda_function_name::AbstractString,
     docker_arn::AbstractString;
-    role_arn::Union{AbstractString, Nothing}=nothing,
-    lambda_optional_parameters::Dict{String, <:Any}=Dict{String, Any}()
+    role_arn::Union{AbstractString,Nothing}=nothing,
+    lambda_optional_parameters::Dict{String,<:Any}=Dict{String,Any}(),
 )
     role_name = "JuliaOnLambda-" * string(UUIDs.uuid4())
 
@@ -90,9 +90,9 @@ function _create_lambda_function(
                 Dict(
                     "Effect" => "Allow",
                     "Principal" => Dict("Service" => "lambda.amazonaws.com"),
-                    "Action" => "sts:AssumeRole"
-                )
-            ]
+                    "Action" => "sts:AssumeRole",
+                ),
+            ],
         )
         assume_role_policy_document = JSON.json(assume_role_policy_document)
 
@@ -106,7 +106,7 @@ function _create_lambda_function(
         Dict("ImageUri" => docker_arn),
         lambda_function_name,
         role_arn,
-        mergewith(_merge, DEFAULT_LAMBDA_PARAMS, lambda_optional_parameters)
+        mergewith(_merge, DEFAULT_LAMBDA_PARAMS, lambda_optional_parameters),
     )
 
     return resp["FunctionArn"], role_name

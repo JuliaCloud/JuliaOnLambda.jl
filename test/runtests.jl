@@ -107,7 +107,9 @@ end
 
             @test !isempty(resp)
 
-            lambda_arn, role_name = JuliaOnLambda._create_lambda_function(lambda_name, image_uri)
+            lambda_arn, role_name = JuliaOnLambda._create_lambda_function(
+                lambda_name, image_uri
+            )
 
             @test !isempty(Lambda.get_function(lambda_name))
         finally
